@@ -21,7 +21,7 @@ You will receive notifications on your PC when updates happened.
 
 ### Graphical-Use
 1. Open a Terminal in the directory where the .jar and webdriver is stored
-2. Type ``java -jar kitkrauler.jar`` for MS Edge
+2. Type ``java -Dengine=edge -jar kitkrauler.jar`` for MS Edge
 3. The web browser will open and ask you to login on the KIT Shibboleth Login site
 4. After a successful login, the KitKrauler will navigate to the Exams site and will contanstly lookup for updates
 You will receive notifications on your PC when updates happened.
