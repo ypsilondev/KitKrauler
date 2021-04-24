@@ -1,4 +1,4 @@
-package de.ypsilon.kitkrauler;
+package dev.ypsilon.kitkrauler;
 
 import java.util.Optional;
 

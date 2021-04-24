@@ -1,11 +1,9 @@
-package de.ypsilon.kitkrauler;
+package dev.ypsilon.kitkrauler;
 
 import org.openqa.selenium.By;
 import org.openqa.selenium.Keys;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
-import org.openqa.selenium.edge.EdgeDriver;
-import org.openqa.selenium.edge.EdgeOptions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
 import java.awt.*;
@@ -53,7 +51,7 @@ public class Execution {
             trayIcon = new TrayIcon(img, "KIT Krauler");
             trayIcon.setImageAutoSize(true);
             trayIcon.addActionListener(e -> {
-                trayIcon.displayMessage("KIT", "Ich gehe noch aber beim KIT arbeitet keiner", TrayIcon.MessageType.INFO);
+                trayIcon.displayMessage("KIT", "Ich funktioniere. Aber keine Noten :(", TrayIcon.MessageType.INFO);
             });
 
             tray.add(trayIcon);
@@ -83,9 +81,10 @@ public class Execution {
                 Thread.sleep(TimeUnit.SECONDS.toMillis(20));
                 update();
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
+        } catch (Exception ignored) { } finally {
+            if (trayIcon != null) {
+                SystemTray.getSystemTray().remove(trayIcon);
+            }
             driver.quit();
         }
     }

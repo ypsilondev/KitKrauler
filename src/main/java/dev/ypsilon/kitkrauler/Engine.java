@@ -1,4 +1,4 @@
-package de.ypsilon.kitkrauler;
+package dev.ypsilon.kitkrauler;
 
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.edge.EdgeDriver;
