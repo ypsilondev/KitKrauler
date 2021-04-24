@@ -29,17 +29,17 @@ public class Execution {
     private boolean firstInsert = true;
     private HashMap<String, String> data = new HashMap<>();
 
-    public Execution(EdgeOptions driverOptions) throws AWTException {
-        this.driver = new EdgeDriver(driverOptions);
+    public Execution(WebDriver driver) throws AWTException {
+        this.driver = driver;
 
         execute();
     }
 
-    public Execution(EdgeOptions driverOptions, String[] credentials) throws AWTException {
+    public Execution(WebDriver driver, String[] credentials) throws AWTException {
         this.uName = credentials[0];
         this.pw = credentials[1];
 
-        this.driver = new EdgeDriver(driverOptions);
+        this.driver = driver;
         execute();
     }
 
@@ -80,7 +80,7 @@ public class Execution {
             fetchData();
 
             while (true) {
-                Thread.sleep(TimeUnit.SECONDS.toMillis(10));
+                Thread.sleep(TimeUnit.SECONDS.toMillis(20));
                 update();
             }
         } catch (Exception e) {
