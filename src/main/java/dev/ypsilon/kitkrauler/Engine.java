@@ -36,7 +36,7 @@ public enum Engine {
         try {
             AbstractDriverOptions driverOptions = null;
 
-            if (args.length == 2) {
+            if (args.length == 1) {
                 validateInput(args);
 
                 switch (this) {

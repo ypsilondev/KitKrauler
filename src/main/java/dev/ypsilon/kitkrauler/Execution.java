@@ -1,5 +1,6 @@
 package dev.ypsilon.kitkrauler;
 
+import com.google.common.primitives.Chars;
 import org.openqa.selenium.By;
 import org.openqa.selenium.Keys;
 import org.openqa.selenium.WebDriver;
@@ -8,8 +9,10 @@ import org.openqa.selenium.support.ui.WebDriverWait;
 
 import java.awt.*;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
 
 import static org.openqa.selenium.support.ui.ExpectedConditions.presenceOfElementLocated;
@@ -35,7 +38,8 @@ public class Execution {
 
     public Execution(WebDriver driver, String[] credentials) throws AWTException {
         this.uName = credentials[0];
-        this.pw = credentials[1];
+        System.out.println("KIT-Account-Passwort für " + this.uName);
+        this.pw = new String(System.console().readPassword(""));
 
         this.driver = driver;
         execute();
@@ -74,6 +78,8 @@ public class Execution {
             wait.until(presenceOfElementLocated(By.id("registration")));
             driver.switchTo().frame(driver.findElement(By.id("registration")));
             gguid = driver.findElement(By.name("gguid")).getAttribute("value");
+
+            System.out.println("Login erfolgreich");
 
             fetchData();
 
