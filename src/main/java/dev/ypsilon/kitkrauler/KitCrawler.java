@@ -10,7 +10,7 @@ public class KitCrawler {
         Optional<Engine> foundEngine = Engine.parse(engine);
 
         if (engine == null || foundEngine.isEmpty()) {
-            Engine.EDGE.initialize(args);
+            Engine.FIREFOX.initialize(args);
         } else {
             foundEngine.get().initialize(args);
         }

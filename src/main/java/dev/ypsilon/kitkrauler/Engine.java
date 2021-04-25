@@ -8,7 +8,6 @@ import org.openqa.selenium.firefox.FirefoxOptions;
 import org.openqa.selenium.remote.AbstractDriverOptions;
 
 import java.awt.*;
-import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.Scanner;
@@ -34,21 +33,21 @@ public enum Engine {
 
     public void initialize(String[] args) {
         try {
-            AbstractDriverOptions driverOptions = null;
+            AbstractDriverOptions<?> driverOptions;
 
             if (args.length == 1) {
                 validateInput(args);
 
                 switch (this) {
-                    case FIREFOX -> {
-                        FirefoxOptions firefoxOptions = new FirefoxOptions();
-                        firefoxOptions.setHeadless(true);
-                        driverOptions = firefoxOptions;
-                    }
-                    default -> {
+                    case EDGE -> {
                         EdgeOptions edgeOptions = new EdgeOptions();
                         edgeOptions.setHeadless(true);
                         driverOptions = edgeOptions;
+                    }
+                    default -> {
+                        FirefoxOptions firefoxOptions = new FirefoxOptions();
+                        firefoxOptions.setHeadless(true);
+                        driverOptions = firefoxOptions;
                     }
                 }
 
@@ -56,9 +55,10 @@ public enum Engine {
             } else {
                 new Execution(this.driver.getConstructor().newInstance());
             }
-        } catch (AWTException ignored) { } catch (InvocationTargetException |
-                InstantiationException | IllegalAccessException | NoSuchMethodException e) {
-            e.printStackTrace();
+        } catch (AWTException ignored) {
+
+        } catch (ReflectiveOperationException exception) {
+            exception.printStackTrace();
         }
     }
 
