@@ -4,6 +4,7 @@ import org.json.JSONObject;
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.Keys;
+import org.openqa.selenium.UnhandledAlertException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.WebDriverWait;
@@ -12,20 +13,20 @@ import javax.imageio.ImageIO;
 import java.awt.AWTException;
 import java.awt.Image;
 import java.awt.SystemTray;
-import java.awt.Toolkit;
 import java.awt.TrayIcon;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.openqa.selenium.support.ui.ExpectedConditions.presenceOfElementLocated;
 
 public class Execution {
-    private final WebDriver driver;
-    private WebDriverWait wait;
+    private final AtomicReference<WebDriver> atomicDriver;
     private String gguid;
 
     private String uName;
@@ -34,10 +35,10 @@ public class Execution {
     private TrayIcon trayIcon;
 
     private boolean firstInsert = true;
-    private HashMap<String, String> data = new HashMap<>();
+    private final HashMap<String, String> data = new HashMap<>();
 
     public Execution(WebDriver driver) throws AWTException {
-        this.driver = driver;
+        this.atomicDriver = new AtomicReference<>(driver);
 
         execute();
     }
@@ -47,7 +48,7 @@ public class Execution {
         System.out.println("KIT-Account-Passwort für " + this.uName);
         this.pw = new String(System.console().readPassword(""));
 
-        this.driver = driver;
+        this.atomicDriver = new AtomicReference<>(driver);
         execute();
     }
 
@@ -66,15 +67,19 @@ public class Execution {
                 e.printStackTrace();
             }
 
+            assert img != null;
             trayIcon = new TrayIcon(img, "KIT Krauler");
             trayIcon.setImageAutoSize(true);
-            trayIcon.addActionListener(e -> {
-                trayIcon.displayMessage("KIT", "Ich funktioniere. Aber keine Noten :(", TrayIcon.MessageType.INFO);
-            });
+            trayIcon.addActionListener(e -> trayIcon.displayMessage(
+                    "KIT",
+                    "Ich funktioniere. Aber keine Noten :(",
+                    TrayIcon.MessageType.INFO
+            ));
 
             tray.add(trayIcon);
         }
 
+        WebDriver driver = atomicDriver.get();
 
         try {
             driver.get("https://campus.studium.kit.edu/");
@@ -92,17 +97,18 @@ public class Execution {
 
             wait.until(presenceOfElementLocated(By.id("registration")));
             driver.switchTo().frame(driver.findElement(By.id("registration")));
+            wait.ignoring(UnhandledAlertException.class).until(presenceOfElementLocated(By.name("gguid")));
             gguid = driver.findElement(By.name("gguid")).getAttribute("value");
 
             System.out.println("Login erfolgreich");
 
             fetchData();
 
-            while (true) {
-                Thread.sleep(TimeUnit.SECONDS.toMillis(20));
-                update();
-            }
-        } catch (Exception ignored) { } finally {
+            Executors.newScheduledThreadPool(2).schedule(this::update, 20, TimeUnit.SECONDS);
+        } catch (Exception exception) {
+            exception.printStackTrace();
+            new java.util.Scanner(System.in).nextLine();
+        } finally {
             if (trayIcon != null) {
                 SystemTray.getSystemTray().remove(trayIcon);
             }
@@ -112,19 +118,21 @@ public class Execution {
 
     private void login() {
         if (this.uName != null || this.pw != null) {
-            driver.findElement(By.id("name")).sendKeys(this.uName);
-            driver.findElement(By.id("password")).sendKeys(this.pw + Keys.ENTER);
+            atomicDriver.get().findElement(By.id("name")).sendKeys(this.uName);
+            atomicDriver.get().findElement(By.id("password")).sendKeys(this.pw + Keys.ENTER);
         }
     }
 
     private void update() {
         //driver.navigate().refresh();
         //wait.until(presenceOfElementLocated(By.name("gguid")));
-        gguid = driver.findElement(By.name("gguid")).getAttribute("value");
+        gguid = atomicDriver.get().findElement(By.name("gguid")).getAttribute("value");
         fetchData();
     }
 
     private void fetchData() {
+        WebDriver driver = atomicDriver.get();
+
         // Load the new token
         driver.navigate().to("https://campus.studium.kit.edu/token.php");
         String tokenPageHtml = driver.getPageSource();
