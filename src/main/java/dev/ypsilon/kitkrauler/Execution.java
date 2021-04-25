@@ -52,7 +52,7 @@ public class Execution {
     }
 
     public void execute() throws AWTException {
-        wait = new WebDriverWait(driver, Duration.ofSeconds(60).getSeconds());
+        WebDriverWait wait = new WebDriverWait(atomicDriver.get(), Duration.ofSeconds(20));
 
         if (SystemTray.isSupported()) {
             SystemTray tray = SystemTray.getSystemTray();
@@ -81,6 +81,7 @@ public class Execution {
             System.out.println(driver.getTitle() + " - Das KIT bleibt handlungsfähig");
 
             driver.findElement(By.id("hello")).findElement(By.className("login-link")).click();
+            wait.ignoring(UnhandledAlertException.class).until(presenceOfElementLocated(By.id("sbmt")));
 
             // Login
             login();
