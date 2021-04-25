@@ -1,18 +1,24 @@
 package dev.ypsilon.kitkrauler;
 
-import com.google.common.primitives.Chars;
+import org.json.JSONObject;
 import org.openqa.selenium.By;
+import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.Keys;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
-import java.awt.*;
+import javax.imageio.ImageIO;
+import java.awt.AWTException;
+import java.awt.Image;
+import java.awt.SystemTray;
+import java.awt.Toolkit;
+import java.awt.TrayIcon;
+import java.io.IOException;
+import java.io.InputStream;
 import java.time.Duration;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
 
 import static org.openqa.selenium.support.ui.ExpectedConditions.presenceOfElementLocated;
@@ -103,14 +109,51 @@ public class Execution {
     }
 
     private void update() {
-        driver.navigate().refresh();
-        wait.until(presenceOfElementLocated(By.name("gguid")));
+        //driver.navigate().refresh();
+        //wait.until(presenceOfElementLocated(By.name("gguid")));
         gguid = driver.findElement(By.name("gguid")).getAttribute("value");
         fetchData();
     }
 
     private void fetchData() {
-        WebElement content = driver.findElement(By.id("contract_" + gguid)).findElement(By.className("tablecontent"));
+        // Load the new token
+        driver.navigate().to("https://campus.studium.kit.edu/token.php");
+        String tokenPageHtml = driver.getPageSource();
+        // remove HTML
+        tokenPageHtml = "{" + tokenPageHtml.split(">\\{")[1];
+        tokenPageHtml = tokenPageHtml.split("\\}<")[0] + "}";
+        // Parse as JSON
+        JSONObject json = new JSONObject(tokenPageHtml);
+        String token = json.getString("tokenA");
+
+        // Navigation to campus.kit.edu required due to CORS
+        driver.navigate().to("https://campus.kit.edu/");
+
+        String tguid = ""; // TODO figure out what this is used for...
+        String url = String.format("https://campus.kit.edu/sp/campus/student/contractview.asp?gguid=%s&tguid=%s&pguid=%s&lang=de&login-token=%s", gguid, tguid, gguid, token);
+
+        // Load the table-HTML and put in DOM
+        String tableLoaderJS = "function replacePage(e){let t=document.open(\"text/html\",\"replace\");t.write(e),t.close()}function getData(e){let t=new XMLHttpRequest;return t.open(\"GET\",e,!1),t.send(),replacePage(t.responseText),t.responseText} return getData(\"%s\");";
+        if (driver instanceof JavascriptExecutor jsDriver) {
+            jsDriver.executeScript(String.format(tableLoaderJS, url));
+        } else {
+            throw new IllegalStateException("This driver does not support JavaScript!");
+        }
+
+        System.out.print("Waiting for elements to load");
+        WebElement we = null;
+        while (we == null) {
+            try {
+                we = driver.findElement(By.className("tablecontent"));
+                Thread.sleep(50);
+            } catch (org.openqa.selenium.NoSuchElementException | InterruptedException e) {
+                System.out.print(".");
+            }
+        }
+        System.out.println("\nElements loaded!");
+
+
+        WebElement content = driver.findElement(By.className("tablecontent"));
         for (WebElement row : content.findElements(By.tagName("tr"))) {
             List<WebElement> tds = row.findElements(By.tagName("td"));
             String subj = tds.get(0).findElement(By.tagName("a")).getText();
