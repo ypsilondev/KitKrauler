@@ -112,7 +112,7 @@ public class Execution {
             if (trayIcon != null) {
                 SystemTray.getSystemTray().remove(trayIcon);
             }
-            driver.quit();
+            // driver.quit();
         }
     }
 
@@ -150,7 +150,8 @@ public class Execution {
         String url = String.format("https://campus.kit.edu/sp/campus/student/contractview.asp?gguid=%s&tguid=%s&pguid=%s&lang=de&login-token=%s", gguid, tguid, gguid, token);
 
         // Load the table-HTML and put in DOM
-        String tableLoaderJS = "function replacePage(e){let t=document.open(\"text/html\",\"replace\");t.write(e),t.close()}function getData(e){let t=new XMLHttpRequest;return t.open(\"GET\",e,!1),t.send(),replacePage(t.responseText),t.responseText} return getData(\"%s\");";
+        // String tableLoaderJS = "function replacePage(e){let t=document.open(\"text/html\",\"replace\");t.write(e),t.close()}function getData(e){let t=new XMLHttpRequest;return t.open(\"GET\",e,!1),t.send(),replacePage(t.responseText),t.responseText} return getData(\"%s\");";
+        String tableLoaderJS = "function replacePage(e){let t=document.getElementsByTagName(\"html\")[0],n=document.createElement(\"HTML\");n.innerHTML=e,document.replaceChild(n,t)}function getData(e){let t=new XMLHttpRequest;return t.open(\"GET\",e,!1),t.send(),replacePage(t.responseText),t.responseText} return getData(\"%s\");";
         if (driver instanceof JavascriptExecutor jsDriver) {
             jsDriver.executeScript(String.format(tableLoaderJS, url));
         } else {
