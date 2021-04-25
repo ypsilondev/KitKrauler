@@ -56,8 +56,16 @@ public class Execution {
 
         if (SystemTray.isSupported()) {
             SystemTray tray = SystemTray.getSystemTray();
+            Image img = null;
+            try {
+                InputStream imageStream = this.getClass().getClassLoader().getResourceAsStream("images/img.jpg");
+                if(imageStream != null) {
+                    img = ImageIO.read(imageStream);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
 
-            Image img = Toolkit.getDefaultToolkit().getImage("images/img.jpg");
             trayIcon = new TrayIcon(img, "KIT Krauler");
             trayIcon.setImageAutoSize(true);
             trayIcon.addActionListener(e -> {
