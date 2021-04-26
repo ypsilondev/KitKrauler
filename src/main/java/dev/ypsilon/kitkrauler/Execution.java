@@ -1,13 +1,7 @@
 package dev.ypsilon.kitkrauler;
 
-import org.json.JSONObject;
-import org.openqa.selenium.By;
-import org.openqa.selenium.JavascriptExecutor;
-import org.openqa.selenium.Keys;
-import org.openqa.selenium.UnhandledAlertException;
+import dev.ypsilon.kitkrauler.goals.DefaultGoal;
 import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebElement;
-import org.openqa.selenium.support.ui.WebDriverWait;
 
 import javax.imageio.ImageIO;
 import java.awt.AWTException;
@@ -16,45 +10,35 @@ import java.awt.SystemTray;
 import java.awt.TrayIcon;
 import java.io.IOException;
 import java.io.InputStream;
-import java.time.Duration;
-import java.util.HashMap;
-import java.util.List;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-
-import static org.openqa.selenium.support.ui.ExpectedConditions.presenceOfElementLocated;
+import java.util.function.Consumer;
 
 public class Execution {
-    private final AtomicReference<WebDriver> atomicDriver;
-    private String gguid;
 
-    private String uName;
-    private String pw;
+    private static TrayIcon trayIcon = null;
 
-    private TrayIcon trayIcon;
+    private static final Class<? extends Consumer<WebDriver>> DEFAULT_GOAL = DefaultGoal.class;
 
-    private boolean firstInsert = true;
-    private final HashMap<String, String> data = new HashMap<>();
-
-    public Execution(WebDriver driver) throws AWTException {
-        this.atomicDriver = new AtomicReference<>(driver);
-
-        execute();
+    public Execution(WebDriver driver) throws AWTException, ReflectiveOperationException {
+        setupTray();
+        executeDefaultGoal(driver);
     }
 
-    public Execution(WebDriver driver, String[] credentials) throws AWTException {
-        this.uName = credentials[0];
-        System.out.println("KIT-Account-Passwort für " + this.uName);
-        this.pw = new String(System.console().readPassword(""));
-
-        this.atomicDriver = new AtomicReference<>(driver);
-        execute();
+    public Execution(WebDriver driver, String[] credentials) throws AWTException, ReflectiveOperationException {
+        login(credentials);
+        setupTray();
+        executeDefaultGoal(driver);
     }
 
-    public void execute() throws AWTException {
-        WebDriverWait wait = new WebDriverWait(atomicDriver.get(), Duration.ofSeconds(20));
+    private void login(String[] credentials) {
+        String username = credentials[0];
 
+        System.out.println("KIT-Account-Passwort für " + username);
+        String password = new String(System.console().readPassword(""));
+
+        CurrentProfile.get().setLoginInformation(username, password);
+    }
+
+    private void setupTray() throws AWTException {
         if (SystemTray.isSupported()) {
             SystemTray tray = SystemTray.getSystemTray();
             Image img = null;
@@ -78,124 +62,13 @@ public class Execution {
 
             tray.add(trayIcon);
         }
-
-        WebDriver driver = atomicDriver.get();
-
-        try {
-            driver.get("https://campus.studium.kit.edu/");
-            System.out.println(driver.getTitle() + " - Das KIT bleibt handlungsfähig");
-
-            driver.findElement(By.id("hello")).findElement(By.className("login-link")).click();
-            wait.ignoring(UnhandledAlertException.class).until(presenceOfElementLocated(By.id("sbmt")));
-
-            // Login
-            login();
-
-            wait.until(presenceOfElementLocated(By.id("hello")));
-
-            driver.navigate().to("https://campus.studium.kit.edu/exams/registration.php");
-
-            wait.until(presenceOfElementLocated(By.id("registration")));
-            driver.switchTo().frame(driver.findElement(By.id("registration")));
-            wait.ignoring(UnhandledAlertException.class).until(presenceOfElementLocated(By.name("gguid")));
-            gguid = driver.findElement(By.name("gguid")).getAttribute("value");
-
-            System.out.println("Login erfolgreich");
-
-            fetchData();
-
-            Executors.newScheduledThreadPool(2).schedule(this::update, 20, TimeUnit.SECONDS);
-        } catch (Exception exception) {
-            exception.printStackTrace();
-            new java.util.Scanner(System.in).nextLine();
-        } finally {
-            if (trayIcon != null) {
-                SystemTray.getSystemTray().remove(trayIcon);
-            }
-            // driver.quit();
-        }
     }
 
-    private void login() {
-        if (this.uName != null || this.pw != null) {
-            atomicDriver.get().findElement(By.id("name")).sendKeys(this.uName);
-            atomicDriver.get().findElement(By.id("password")).sendKeys(this.pw + Keys.ENTER);
-        }
+    private void executeDefaultGoal(WebDriver driver) throws ReflectiveOperationException {
+        DEFAULT_GOAL.getConstructor().newInstance().accept(driver);
     }
 
-    private void update() {
-        //driver.navigate().refresh();
-        //wait.until(presenceOfElementLocated(By.name("gguid")));
-        gguid = atomicDriver.get().findElement(By.name("gguid")).getAttribute("value");
-        fetchData();
-    }
-
-    private void fetchData() {
-        WebDriver driver = atomicDriver.get();
-
-        // Load the new token
-        driver.navigate().to("https://campus.studium.kit.edu/token.php");
-        String tokenPageHtml = driver.getPageSource();
-        // remove HTML
-        tokenPageHtml = "{" + tokenPageHtml.split(">\\{")[1];
-        tokenPageHtml = tokenPageHtml.split("\\}<")[0] + "}";
-        // Parse as JSON
-        JSONObject json = new JSONObject(tokenPageHtml);
-        String token = json.getString("tokenA");
-
-        // Navigation to campus.kit.edu required due to CORS
-        driver.navigate().to("https://campus.kit.edu/");
-
-        String tguid = ""; // TODO figure out what this is used for...
-        String url = String.format("https://campus.kit.edu/sp/campus/student/contractview.asp?gguid=%s&tguid=%s&pguid=%s&lang=de&login-token=%s", gguid, tguid, gguid, token);
-
-        // Load the table-HTML and put in DOM
-        // String tableLoaderJS = "function replacePage(e){let t=document.open(\"text/html\",\"replace\");t.write(e),t.close()}function getData(e){let t=new XMLHttpRequest;return t.open(\"GET\",e,!1),t.send(),replacePage(t.responseText),t.responseText} return getData(\"%s\");";
-        String tableLoaderJS = "function replacePage(e){let t=document.getElementsByTagName(\"html\")[0],n=document.createElement(\"HTML\");n.innerHTML=e,document.replaceChild(n,t)}function getData(e){let t=new XMLHttpRequest;return t.open(\"GET\",e,!1),t.send(),replacePage(t.responseText),t.responseText} return getData(\"%s\");";
-        if (driver instanceof JavascriptExecutor jsDriver) {
-            jsDriver.executeScript(String.format(tableLoaderJS, url));
-        } else {
-            throw new IllegalStateException("This driver does not support JavaScript!");
-        }
-
-        System.out.print("Waiting for elements to load");
-        WebElement we = null;
-        while (we == null) {
-            try {
-                we = driver.findElement(By.className("tablecontent"));
-                Thread.sleep(50);
-            } catch (org.openqa.selenium.NoSuchElementException | InterruptedException e) {
-                System.out.print(".");
-            }
-        }
-        System.out.println("\nElements loaded!");
-
-
-        WebElement content = driver.findElement(By.className("tablecontent"));
-        for (WebElement row : content.findElements(By.tagName("tr"))) {
-            List<WebElement> tds = row.findElements(By.tagName("td"));
-            String subj = tds.get(0).findElement(By.tagName("a")).getText();
-            String grade = row.findElement(By.className("nowrap")).getText();
-
-            addToHashMap(subj, grade);
-            firstInsert = false;
-        }
-    }
-
-    private void addToHashMap(String key, String value) {
-        if (!data.containsKey(key)) {
-            data.put(key, value);
-        } else {
-            if (!data.get(key).equals(value)) {
-                data.put(key, value);
-                if (!firstInsert) {
-                    String update = String.format("key updated (%s) to %s.%n", key, value);
-                    if (trayIcon != null) {
-                        trayIcon.displayMessage("KIT UPDATE!!11111", update, TrayIcon.MessageType.INFO);
-                    }
-                    System.out.println(update);
-                }
-            }
-        }
+    public static synchronized TrayIcon getTrayIcon() {
+        return trayIcon;
     }
 }
