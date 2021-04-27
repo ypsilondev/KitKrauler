@@ -12,6 +12,9 @@ See [Releases](https://github.com/ypsilondev/KitKrauler/releases)
 ### 3. Store KitKrauler and your browsers web driver in the same directory
 It's important to store the KitKrauler .jar and your browsers web driver in the same directory.
 
+### 4. Important notes:
+You are not permitted to crawl ``campus.studium.kit.edu`` and ``campus.kit.edu`` in realy high rates. We do not take any responsibility for using this tool and recommend to used high intervalls (at least 4 hours or more).
+
 ## How to use - Receive notifications
 ### Console-Use
 1. Open a Terminal in the directory where the .jar and webdriver is stored.
